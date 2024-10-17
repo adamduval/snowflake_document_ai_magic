@@ -5,17 +5,17 @@ import snowflake.connector
 from typing import Any, Dict, List
 
 SNOWFLAKE_CONN_PARAMS = {
-        'user': '',
-        'password': '',
-        'account': '',
-        'warehouse': '',
-        'database': '',
-        'schema': ''
-    }
-WATCH_DIR = ''
-STAGE = ''
-TABLE_NAME = ''
-MODEL_NAME = ''
+    'user': '',
+    'password': '',
+    'account': '',
+    'warehouse': '',
+    'database': '',
+    'schema': ''
+}
+WATCH_DIR = ''  # Directory to monitor for new files
+STAGE = ''  # Snowflake stage for file uploads
+TABLE_NAME = ''  # Snowflake table for inserting prediction data
+MODEL_NAME = ''  # Model name for running predictions
 
 
 def find_jpeg_files(directory: str) -> List[str]:
@@ -41,16 +41,13 @@ def upload_to_snowflake(file_path: str, stage_name: str, conn_params: Dict[str, 
     Uploads a local file to a specified Snowflake stage.
 
     Args:
-        file_path (str): The path of the local file to upload. 
+        file_path (str): The path of the local file to upload.
                          Backslashes are replaced with forward slashes for compatibility with Snowflake.
         stage_name (str): The name of the Snowflake stage where the file will be uploaded.
-        conn_params (Dict[str, str]): A dictionary of connection parameters for Snowflake. 
-                                      Typically includes 'user', 'password', 'account', etc.
+        conn_params (Dict[str, str]): A dictionary of connection parameters for Snowflake.
     """
-    # Ensure the file path is compatible with Snowflake by replacing backslashes with forward slashes
     file_path = file_path.replace('\\', '/')
 
-    # Use a context manager to handle the connection and cursor
     with snowflake.connector.connect(**conn_params) as conn:
         with conn.cursor() as cursor:
             print(f"PUT 'file://{file_path}' @{stage_name}")
@@ -58,44 +55,44 @@ def upload_to_snowflake(file_path: str, stage_name: str, conn_params: Dict[str, 
             print(f"Uploaded {file_path} to Snowflake stage {stage_name}")
 
 
-def run_prediction(stage_name: str, file_name: str, cursor) -> Dict[str, Any]:
+def run_prediction(stage_name: str, file_name: str, model_name: str, cursor) -> Dict[str, Any]:
     """
     Runs a stored procedure to get the prediction data for a given file from the Snowflake stage.
 
     Args:
         stage_name (str): The name of the Snowflake stage where the file is stored.
         file_name (str): The name of the file for which to run the prediction.
+        model_name (str): The model used for prediction.
         cursor: The Snowflake cursor to execute the query.
 
     Returns:
         Dict[str, Any]: Parsed JSON prediction result.
     """
-    print(f"Running stored procedure for {file_name}")
+    print(f"Running stored procedure for {file_name} using model {model_name}")
     query = f"""
-        SELECT SANDBOX.ADUVAL.DOCAI_POC!PREDICT(
+        SELECT {model_name}!PREDICT(
             GET_PRESIGNED_URL(@{stage_name}, '{file_name}'), 3
         ) as data;
     """
     cursor.execute(query)
-    
-    # Retrieve and parse the result
+
     result = cursor.fetchone()[0]
     result_json = json.loads(result)
     print(result_json)
-    
+
     return result_json
 
 
-def insert_prediction_data(result_json: Dict[str, Any], file_name: str, cursor) -> None:
+def insert_prediction_data(result_json: Dict[str, Any], file_name: str, table_name: str, cursor) -> None:
     """
     Inserts the extracted prediction data into the target table.
 
     Args:
         result_json (Dict[str, Any]): Parsed JSON prediction result containing data to insert.
         file_name (str): The name of the file being processed.
+        table_name (str): The target Snowflake table for inserting data.
         cursor: The Snowflake cursor to execute the query.
     """
-    # Extract relevant fields from the result JSON
     score = result_json["__documentMetadata"]["ocrScore"]
     date_value = result_json["date"][0]["value"]
     text_value = result_json["text"][0]["value"]
@@ -103,10 +100,9 @@ def insert_prediction_data(result_json: Dict[str, Any], file_name: str, cursor) 
     numeric_value = result_json["numeric"][0]["value"]
     free_text_writing_value = result_json["free_text_writing"][0]["value"]
 
-    # Insert data into the table
-    print(f"Inserting data for {file_name} into table")
-    insert_query = """
-        INSERT INTO form_table(score, date_value, text_value, dropdown_value, numeric_value, free_text_writing_value)
+    print(f"Inserting data for {file_name} into table {table_name}")
+    insert_query = f"""
+        INSERT INTO {table_name} (score, date_value, text_value, dropdown_value, numeric_value, free_text_writing_value)
         VALUES (%s, %s, %s, %s, %s, %s)
     """
     cursor.execute(insert_query, (
@@ -115,7 +111,7 @@ def insert_prediction_data(result_json: Dict[str, Any], file_name: str, cursor) 
     print(f"Data for {file_name} inserted successfully")
 
 
-def watch_directory_and_upload(directory: str, stage_name: str, conn_params: Dict[str, str], interval: int = 1) -> None:
+def watch_directory_and_upload(directory: str, stage_name: str, table_name: str, model_name: str, conn_params: Dict[str, str], interval: int = 1) -> None:
     """
     Monitors a directory for new JPEG files and uploads them to a Snowflake stage.
     After uploading, it runs a prediction and inserts the extracted data into a Snowflake table.
@@ -123,10 +119,11 @@ def watch_directory_and_upload(directory: str, stage_name: str, conn_params: Dic
     Args:
         directory (str): The directory to monitor for new files.
         stage_name (str): The Snowflake stage where files are uploaded.
+        table_name (str): The Snowflake table for inserting prediction data.
+        model_name (str): The model used for prediction.
         conn_params (Dict[str, str]): A dictionary of connection parameters for Snowflake.
         interval (int, optional): The time interval (in seconds) to wait between directory checks. Default is 1 second.
     """
-    # Track files that have already been processed
     seen_files = set(find_jpeg_files(directory))
 
     while True:
@@ -137,26 +134,16 @@ def watch_directory_and_upload(directory: str, stage_name: str, conn_params: Dic
         if new_files:
             for file_path in new_files:
                 print(f"New file detected: {file_path}")
-                # Upload the new file to Snowflake
                 upload_to_snowflake(file_path, stage_name, conn_params)
-                
-                # Run prediction and insert the data into Snowflake
+
                 with snowflake.connector.connect(**conn_params) as conn:
                     with conn.cursor() as cursor:
-                        # Extract the file name from the full path
                         file_name = os.path.basename(file_path)
+                        result_json = run_prediction(stage_name, file_name, model_name, cursor)
+                        insert_prediction_data(result_json, file_name, table_name, cursor)
 
-                        # Run prediction
-                        result_json = run_prediction(stage_name, file_name, cursor)
-
-                        # Insert prediction data into the table
-                        insert_prediction_data(result_json, file_name, cursor)
-        
-        # Update the set of seen files to include the new files
         seen_files = current_files
 
-if __name__ == "__main__":
-    watch_dir = 'C:/Users/adam.duval/OneDrive - Cooke Aquaculture/files/'  # Replace with the directory you want to monitor
-    snowflake_stage = 'docai_stage'   # Replace with your Snowflake stage name
 
-    watch_directory_and_upload(WATCH_DIR, STAGE, SNOWFLAKE_CONN_PARAMS)
+if __name__ == "__main__":
+    watch_directory_and_upload(WATCH_DIR, STAGE, TABLE_NAME, MODEL_NAME, SNOWFLAKE_CONN_PARAMS)
