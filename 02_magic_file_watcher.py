@@ -36,7 +36,7 @@ def find_jpeg_files(directory: str) -> List[str]:
     return jpeg_files
 
 
-def upload_to_snowflake(file_path: str, stage_name: str, conn_params: Dict[str, str]) -> None:
+def upload_to_snowflake(file_path: str, stage_name: str, cursor) -> None:
     """
     Uploads a local file to a specified Snowflake stage.
 
@@ -44,15 +44,12 @@ def upload_to_snowflake(file_path: str, stage_name: str, conn_params: Dict[str, 
         file_path (str): The path of the local file to upload.
                          Backslashes are replaced with forward slashes for compatibility with Snowflake.
         stage_name (str): The name of the Snowflake stage where the file will be uploaded.
-        conn_params (Dict[str, str]): A dictionary of connection parameters for Snowflake.
+        cursor: The Snowflake cursor to execute the query.
     """
     file_path = file_path.replace('\\', '/')
-
-    with snowflake.connector.connect(**conn_params) as conn:
-        with conn.cursor() as cursor:
-            print(f"PUT 'file://{file_path}' @{stage_name}")
-            cursor.execute(f"PUT 'file://{file_path}' @{stage_name} auto_compress=FALSE")
-            print(f"Uploaded {file_path} to Snowflake stage {stage_name}")
+    print(f"PUT 'file://{file_path}' @{stage_name}")
+    cursor.execute(f"PUT 'file://{file_path}' @{stage_name} auto_compress=FALSE")
+    print(f"Uploaded {file_path} to Snowflake stage {stage_name}")
 
 
 def run_prediction(stage_name: str, file_name: str, model_name: str, cursor) -> Dict[str, Any]:
@@ -111,7 +108,7 @@ def insert_prediction_data(result_json: Dict[str, Any], file_name: str, table_na
     print(f"Data for {file_name} inserted successfully")
 
 
-def watch_directory_and_upload(directory: str, stage_name: str, table_name: str, model_name: str, conn_params: Dict[str, str], interval: int = 1) -> None:
+def watch_directory_and_upload(directory: str, stage_name: str, table_name: str, model_name: str, cursor, interval: int = 1) -> None:
     """
     Monitors a directory for new JPEG files and uploads them to a Snowflake stage.
     After uploading, it runs a prediction and inserts the extracted data into a Snowflake table.
@@ -121,7 +118,7 @@ def watch_directory_and_upload(directory: str, stage_name: str, table_name: str,
         stage_name (str): The Snowflake stage where files are uploaded.
         table_name (str): The Snowflake table for inserting prediction data.
         model_name (str): The model used for prediction.
-        conn_params (Dict[str, str]): A dictionary of connection parameters for Snowflake.
+        cursor: The Snowflake cursor to execute the query.
         interval (int, optional): The time interval (in seconds) to wait between directory checks. Default is 1 second.
     """
     seen_files = set(find_jpeg_files(directory))
@@ -134,16 +131,22 @@ def watch_directory_and_upload(directory: str, stage_name: str, table_name: str,
         if new_files:
             for file_path in new_files:
                 print(f"New file detected: {file_path}")
-                upload_to_snowflake(file_path, stage_name, conn_params)
+                upload_to_snowflake(file_path, stage_name, cursor)
 
-                with snowflake.connector.connect(**conn_params) as conn:
-                    with conn.cursor() as cursor:
-                        file_name = os.path.basename(file_path)
-                        result_json = run_prediction(stage_name, file_name, model_name, cursor)
-                        insert_prediction_data(result_json, file_name, table_name, cursor)
+                # Extract the file name from the full path
+                file_name = os.path.basename(file_path)
+
+                # Run prediction
+                result_json = run_prediction(stage_name, file_name, model_name, cursor)
+
+                # Insert prediction data into the table
+                insert_prediction_data(result_json, file_name, table_name, cursor)
 
         seen_files = current_files
 
 
 if __name__ == "__main__":
-    watch_directory_and_upload(WATCH_DIR, STAGE, TABLE_NAME, MODEL_NAME, SNOWFLAKE_CONN_PARAMS)
+    # Open a single connection and cursor for the entire process
+    with snowflake.connector.connect(**SNOWFLAKE_CONN_PARAMS) as conn:
+        with conn.cursor() as cursor:
+            watch_directory_and_upload(WATCH_DIR, STAGE, TABLE_NAME, MODEL_NAME, cursor)
