@@ -22,8 +22,10 @@ Create a stage where form images can be sent and a table to store the processed 
 CREATE stage doc_ai_magic_stage
 ```
 
+Replace `MY_DB` and `MY_SCHEMA`
+
 ```SQL
-CREATE OR REPLACE TABLE MY_DB.MY_SCHEMA.FORM_TABLE (
+CREATE OR REPLACE TABLE MY_DB.MY_SCHEMA.DOCFORM_TABLE (
 	SCORE FLOAT,
 	DATE_VALUE VARCHAR,
 	TEXT_VALUE VARCHAR,
@@ -32,6 +34,8 @@ CREATE OR REPLACE TABLE MY_DB.MY_SCHEMA.FORM_TABLE (
 	FREE_TEXT_WRITING_VALUE VARCHAR
 )
 ```
+
+*Replace `MY_DB` and `MY_SCHEMA` with your database and schema.
 
 ### 2. Deploy and train new Document AI Model
 
@@ -47,8 +51,14 @@ Print off 20 copies of the ./resources/demo_form_empty.pdf file and have various
 
 ### 3. Deploy Streamlit App in Snowflake
 
+Copy code from `01_magic_streamlit_app.py` into a a Streamlit in Snowflake app.
+
 ### 4. Setup Local folder
+
+Setup a local folder to watch for form files.
  
 ### 5. Setup Python script
+
+Copy `02_magic_file_watcher.py` to a local folder and setup virtual environment `python -m venv .venv`, `pip install -r requirements.txt'`. R
 
 ### 6. Watch the Magic Happen
