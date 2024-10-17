@@ -1,6 +1,6 @@
 # ✨ Snowflake Document AI Magic Demo ✨
 
-This is a quick and fun proof of concept demo developped to show off the capabilities of Snowflake Document AI. The idea of the "magic" is to have an audience member fill out the paper form and then you as the "magician" will snap a picture of the form and it will magically appear on the streamlit app on the screen without you having to touch your computer. Top hat and cape are optional by highly recommeded for effect.
+This is a quick and fun proof of concept demo developed to show off the capabilities of Snowflake Document AI. The idea of the "magic" is to have an audience member fill out the paper form and then you as the "magician" will snap a picture of the form and it will magically appear on the streamlit app on the screen without you having to touch your computer. Top hat and cape are optional by highly recommended for effect.
 
 ## Requirements
 - Snowflake
@@ -45,7 +45,7 @@ Deploy a Document AI model from Snowsight UI.
 
 #### 2.2 Make Training Data
 
-Print off 20 copies of the ./resources/demo_form_empty.pdf file and have various people fill it out. All fields can be filled out by hand (the dropdown field can be pre selected, it is used to show the option of having a preselected field in a form). Ideally the forms should use printing for all fields except the handwiriting field which should use cursive. 
+Print off 20 copies of the ./resources/demo_form_empty.pdf file and have various people fill it out. All fields can be filled out by hand (the dropdown field can be preselected; it is used to show the option of having a preselected field in a form). Ideally the forms should use printing for all fields except the handwriting field which should use cursive. 
 
 #### 2.3 Train Document AI Model
 
@@ -67,7 +67,7 @@ Setup a local folder to watch for form files.
 ### 6. Start the Show
 
 1. Start the file watcher script.
-2. Start the streamlit app and make it full screen.
+2. Start the Streamlit app and make it full screen.
 
 ### 6. Watch the Magic Happen
 
