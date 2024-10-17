@@ -49,6 +49,8 @@ Print off 20 copies of the ./resources/demo_form_empty.pdf file and have various
 
 #### 2.3 Train Document AI Model
 
+Upload the training files to the model and train it.
+
 ### 3. Deploy Streamlit App in Snowflake
 
 Copy code from `01_magic_streamlit_app.py` into a a Streamlit in Snowflake app.
@@ -59,6 +61,8 @@ Setup a local folder to watch for form files.
  
 ### 5. Setup Python script
 
-Copy `02_magic_file_watcher.py` to a local folder and setup virtual environment `python -m venv .venv`, `pip install -r requirements.txt'`. R
+1. Copy `02_magic_file_watcher.py` to a local folder and setup virtual environment `python -m venv .venv`, `pip install -r requirements.txt'`.
+2. Add the connection parameters to the script along with the WATCH_DIR, STAGE, TABLE_NAME, MODEL_NAME, MODEL_VERSION and FILE_TYPE.
+3. Start the script
 
 ### 6. Watch the Magic Happen

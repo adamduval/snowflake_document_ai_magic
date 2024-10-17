@@ -18,6 +18,7 @@ WATCH_DIR = ''  # Directory to monitor for new files
 STAGE = ''  # Snowflake stage for file uploads
 TABLE_NAME = ''  # Snowflake table for inserting prediction data
 MODEL_NAME = ''  # Model name for running predictions
+MODEL_VERSION = 1 # Model version for running predictions
 FILE_TYPE = ''  # Can be 'jpeg' or 'pdf' to determine which file types to process
 
 
@@ -64,7 +65,7 @@ def upload_to_snowflake(file_path: str, stage_name: str, cursor) -> None:
     print(f"Uploaded {file_path} to Snowflake stage {stage_name}")
 
 
-def run_prediction(stage_name: str, file_name: str, model_name: str, cursor) -> Dict[str, Any]:
+def run_prediction(stage_name: str, file_name: str, model_name: str, model_version: int, cursor) -> Dict[str, Any]:
     """
     Runs a stored procedure to get the prediction data for a given file from the Snowflake stage.
 
@@ -72,15 +73,16 @@ def run_prediction(stage_name: str, file_name: str, model_name: str, cursor) -> 
         stage_name (str): The name of the Snowflake stage where the file is stored.
         file_name (str): The name of the file for which to run the prediction.
         model_name (str): The model used for prediction.
+        model_version (int): The version of the model to use.
         cursor: The Snowflake cursor to execute the query.
 
     Returns:
         Dict[str, Any]: Parsed JSON prediction result.
     """
-    print(f"Running stored procedure for {file_name} using model {model_name}")
+    print(f"Running stored procedure for {file_name} using model {model_name} (version {model_version})")
     query = f"""
         SELECT {model_name}!PREDICT(
-            GET_PRESIGNED_URL(@{stage_name}, '{file_name}'), 3
+            GET_PRESIGNED_URL(@{stage_name}, '{file_name}'), {model_version}
         ) as data;
     """
     cursor.execute(query)
@@ -120,7 +122,7 @@ def insert_prediction_data(result_json: Dict[str, Any], file_name: str, table_na
     print(f"Data for {file_name} inserted successfully")
 
 
-def watch_directory_and_upload(directory: str, file_type: str, stage_name: str, table_name: str, model_name: str, cursor, interval: int = 1) -> None:
+def watch_directory_and_upload(directory: str, file_type: str, stage_name: str, table_name: str, model_name: str, model_version: int, cursor, interval: int = 1) -> None:
     """
     Monitors a directory for new files (JPEG or PDF) and uploads them to a Snowflake stage.
     After uploading, it runs a prediction and inserts the extracted data into a Snowflake table.
@@ -131,6 +133,7 @@ def watch_directory_and_upload(directory: str, file_type: str, stage_name: str, 
         stage_name (str): The Snowflake stage where files are uploaded.
         table_name (str): The Snowflake table for inserting prediction data.
         model_name (str): The model used for prediction.
+        model_version (int): The version of the model to use.
         cursor: The Snowflake cursor to execute the query.
         interval (int, optional): The time interval (in seconds) to wait between directory checks. Default is 1 second.
     """
@@ -150,7 +153,7 @@ def watch_directory_and_upload(directory: str, file_type: str, stage_name: str, 
                 file_name = os.path.basename(file_path)
 
                 # Run prediction
-                result_json = run_prediction(stage_name, file_name, model_name, cursor)
+                result_json = run_prediction(stage_name, file_name, model_name, model_version, cursor)
 
                 # Insert prediction data into the table
                 insert_prediction_data(result_json, file_name, table_name, cursor)
@@ -162,4 +165,4 @@ if __name__ == "__main__":
     # Open a single connection and cursor for the entire process
     with snowflake.connector.connect(**SNOWFLAKE_CONN_PARAMS) as conn:
         with conn.cursor() as cursor:
-            watch_directory_and_upload(WATCH_DIR, FILE_TYPE, STAGE, TABLE_NAME, MODEL_NAME, cursor)
+            watch_directory_and_upload(WATCH_DIR, FILE_TYPE, STAGE, TABLE_NAME, MODEL_NAME, MODEL_VERSION, cursor)
