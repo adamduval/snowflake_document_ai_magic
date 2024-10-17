@@ -12,28 +12,39 @@ SNOWFLAKE_CONN_PARAMS = {
     'database': '',
     'schema': ''
 }
+
 WATCH_DIR = ''  # Directory to monitor for new files
 STAGE = ''  # Snowflake stage for file uploads
 TABLE_NAME = ''  # Snowflake table for inserting prediction data
 MODEL_NAME = ''  # Model name for running predictions
+FILE_TYPE = ''  # Can be 'jpeg' or 'pdf' to determine which file types to process
 
 
-def find_jpeg_files(directory: str) -> List[str]:
+def find_files_by_type(directory: str, file_type: str) -> List[str]:
     """
-    Recursively searches for all JPEG (.jpeg and .jpg) files in a given directory and its subdirectories.
+    Recursively searches for all files of a given type (.jpeg, .jpg, .pdf) in a directory and its subdirectories.
 
     Args:
         directory (str): The root directory to start searching from.
+        file_type (str): The type of files to search for ('jpeg' or 'pdf').
 
     Returns:
-        List[str]: A list of file paths for all the JPEG files found.
+        List[str]: A list of file paths for all the specified files found.
     """
-    jpeg_files = []
-    for root, _, files in os.walk(directory):
-        for file_name in files:
-            if file_name.lower().endswith(('.jpeg', '.jpg')):
-                jpeg_files.append(os.path.join(root, file_name))
-    return jpeg_files
+    valid_extensions = {
+        'jpeg': ('.jpeg', '.jpg'),
+        'pdf': ('.pdf',)
+    }
+
+    if file_type not in valid_extensions:
+        raise ValueError("Invalid FILE_TYPE. Must be 'jpeg' or 'pdf'.")
+
+    files = []
+    for root, _, filenames in os.walk(directory):
+        for file_name in filenames:
+            if file_name.lower().endswith(valid_extensions[file_type]):
+                files.append(os.path.join(root, file_name))
+    return files
 
 
 def upload_to_snowflake(file_path: str, stage_name: str, cursor) -> None:
@@ -108,29 +119,30 @@ def insert_prediction_data(result_json: Dict[str, Any], file_name: str, table_na
     print(f"Data for {file_name} inserted successfully")
 
 
-def watch_directory_and_upload(directory: str, stage_name: str, table_name: str, model_name: str, cursor, interval: int = 1) -> None:
+def watch_directory_and_upload(directory: str, file_type: str, stage_name: str, table_name: str, model_name: str, cursor, interval: int = 1) -> None:
     """
-    Monitors a directory for new JPEG files and uploads them to a Snowflake stage.
+    Monitors a directory for new files (JPEG or PDF) and uploads them to a Snowflake stage.
     After uploading, it runs a prediction and inserts the extracted data into a Snowflake table.
 
     Args:
         directory (str): The directory to monitor for new files.
+        file_type (str): The type of files to monitor ('jpeg' or 'pdf').
         stage_name (str): The Snowflake stage where files are uploaded.
         table_name (str): The Snowflake table for inserting prediction data.
         model_name (str): The model used for prediction.
         cursor: The Snowflake cursor to execute the query.
         interval (int, optional): The time interval (in seconds) to wait between directory checks. Default is 1 second.
     """
-    seen_files = set(find_jpeg_files(directory))
+    seen_files = set(find_files_by_type(directory, file_type))
 
     while True:
         time.sleep(interval)
-        current_files = set(find_jpeg_files(directory))
+        current_files = set(find_files_by_type(directory, file_type))
         new_files = current_files - seen_files
 
         if new_files:
             for file_path in new_files:
-                print(f"New file detected: {file_path}")
+                print(f"New {file_type.upper()} file detected: {file_path}")
                 upload_to_snowflake(file_path, stage_name, cursor)
 
                 # Extract the file name from the full path
@@ -149,4 +161,4 @@ if __name__ == "__main__":
     # Open a single connection and cursor for the entire process
     with snowflake.connector.connect(**SNOWFLAKE_CONN_PARAMS) as conn:
         with conn.cursor() as cursor:
-            watch_directory_and_upload(WATCH_DIR, STAGE, TABLE_NAME, MODEL_NAME, cursor)
+            watch_directory_and_upload(WATCH_DIR, FILE_TYPE, STAGE, TABLE_NAME, MODEL_NAME, cursor)
