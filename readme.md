@@ -1,4 +1,4 @@
-# Snowflake Document AI Magic Demo
+# ✨ Snowflake Document AI Magic Demo ✨
 
 This is a quick and fun proof of concept demo developped to show off the capabilities of Snowflake Document AI. The idea of the "magic" is to have an audience member fill out the paper form and then you as the "magician" will snap a picture of the form and it will magically appear on the streamlit app on the screen without you having to touch your computer. Top hat and cape are optional by highly recommeded for effect.
 
@@ -63,6 +63,13 @@ Setup a local folder to watch for form files.
 
 1. Copy `02_magic_file_watcher.py` to a local folder and setup virtual environment `python -m venv .venv`, `pip install -r requirements.txt'`.
 2. Add the connection parameters to the script along with the WATCH_DIR, STAGE, TABLE_NAME, MODEL_NAME, MODEL_VERSION and FILE_TYPE.
-3. Start the script
+
+### 6. Start the Show
+
+1. Start the file watcher script.
+2. Start the streamlit app and make it full screen.
 
 ### 6. Watch the Magic Happen
+
+1. Get someone to fill out the document, snap a picture and upload it to the watched folder using only your phone.
+2. Watch as they are amazed that their writing appears on the screen like "MAGIC" ✨.
