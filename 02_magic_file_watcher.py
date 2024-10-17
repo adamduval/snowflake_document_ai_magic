@@ -4,13 +4,14 @@ import json
 import snowflake.connector
 from typing import Any, Dict, List
 
+
 SNOWFLAKE_CONN_PARAMS = {
-    'user': '',
-    'password': '',
-    'account': '',
-    'warehouse': '',
-    'database': '',
-    'schema': ''
+    'user': '',          # Your Snowflake username 
+    'password': '',      # The password associated with your Snowflake username
+    'account': '',       # Your Snowflake account identifier (e.g., 'xyz12345.us-east-1')
+    'warehouse': '',     # The virtual warehouse to use for running queries 
+    'database': '',      # The default database where queries will be executed 
+    'schema': ''         # The default schema within the database to use
 }
 
 WATCH_DIR = ''  # Directory to monitor for new files
