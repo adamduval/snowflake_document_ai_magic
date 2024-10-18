@@ -104,28 +104,22 @@ def insert_prediction_data(result_json: Dict[str, Any], file_name: str, table_na
         table_name (str): The target Snowflake table for inserting data.
         cursor: The Snowflake cursor to execute the query.
     """
-    try:
-        score = result_json["__documentMetadata"]["ocrScore"]
-        date_value = result_json["date"][0]["value"]
-        text_value = result_json["text"][0]["value"]
-        dropdown_value = result_json["dropdown"][0]["value"]
-        numeric_value = result_json["numeric"][0]["value"]
-        free_text_writing_value = result_json["free_text_writing"][0]["value"]
+    score = result_json["__documentMetadata"]["ocrScore"]
+    date_value = result_json["date"][0]["value"]
+    text_value = result_json["text"][0]["value"]
+    dropdown_value = result_json["dropdown"][0]["value"]
+    numeric_value = result_json["numeric"][0]["value"]
+    free_text_writing_value = result_json["free_text_writing"][0]["value"]
 
-        print(f"Inserting data for {file_name} into table {table_name}")
-        insert_query = f"""
-            INSERT INTO {table_name} (score, date_value, text_value, dropdown_value, numeric_value, free_text_writing_value)
-            VALUES (%s, %s, %s, %s, %s, %s)
-        """
-        cursor.execute(insert_query, (
-            score, date_value, text_value, dropdown_value, numeric_value, free_text_writing_value
-        ))
-        print(f"Data for {file_name} inserted successfully")
-
-    except KeyError as e:
-        print(f"KeyError: Missing key {e} in the result JSON for {file_name}")
-    except Exception as e:
-        print(f"An error occurred while inserting data for {file_name}: {e}")
+    print(f"Inserting data for {file_name} into table {table_name}")
+    insert_query = f"""
+        INSERT INTO {table_name} (score, date_value, text_value, dropdown_value, numeric_value, free_text_writing_value)
+        VALUES (%s, %s, %s, %s, %s, %s)
+    """
+    cursor.execute(insert_query, (
+        score, date_value, text_value, dropdown_value, numeric_value, free_text_writing_value
+    ))
+    print(f"Data for {file_name} inserted successfully")
 
 
 def watch_directory_and_upload(directory: str, file_type: str, stage_name: str, table_name: str, model_name: str, model_version: int, cursor, interval: int = 1) -> None:
@@ -152,17 +146,21 @@ def watch_directory_and_upload(directory: str, file_type: str, stage_name: str, 
 
         if new_files:
             for file_path in new_files:
-                print(f"New {file_type.upper()} file detected: {file_path}")
-                upload_to_snowflake(file_path, stage_name, cursor)
+                try:
+                    print(f"New {file_type.upper()} file detected: {file_path}")
+                    upload_to_snowflake(file_path, stage_name, cursor)
 
-                # Extract the file name from the full path
-                file_name = os.path.basename(file_path)
+                    # Extract the file name from the full path
+                    file_name = os.path.basename(file_path)
 
-                # Run prediction
-                result_json = run_prediction(stage_name, file_name, model_name, model_version, cursor)
+                    # Run prediction
+                    result_json = run_prediction(stage_name, file_name, model_name, model_version, cursor)
 
-                # Insert prediction data into the table
-                insert_prediction_data(result_json, file_name, table_name, cursor)
+                    # Insert prediction data into the table
+                    insert_prediction_data(result_json, file_name, table_name, cursor)
+
+                except Exception as e:
+                    print(f"An error occurred while processing {file_path}: {e}")
 
         seen_files = current_files
 
