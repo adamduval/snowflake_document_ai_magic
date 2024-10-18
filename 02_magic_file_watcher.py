@@ -128,7 +128,6 @@ def insert_prediction_data(result_json: Dict[str, Any], file_name: str, table_na
         print(f"An error occurred while inserting data for {file_name}: {e}")
 
 
-
 def watch_directory_and_upload(directory: str, file_type: str, stage_name: str, table_name: str, model_name: str, model_version: int, cursor, interval: int = 1) -> None:
     """
     Monitors a directory for new files (JPEG or PDF) and uploads them to a Snowflake stage.
