@@ -146,17 +146,21 @@ def watch_directory_and_upload(directory: str, file_type: str, stage_name: str, 
 
         if new_files:
             for file_path in new_files:
-                print(f"New {file_type.upper()} file detected: {file_path}")
-                upload_to_snowflake(file_path, stage_name, cursor)
+                try:
+                    print(f"New {file_type.upper()} file detected: {file_path}")
+                    upload_to_snowflake(file_path, stage_name, cursor)
 
-                # Extract the file name from the full path
-                file_name = os.path.basename(file_path)
+                    # Extract the file name from the full path
+                    file_name = os.path.basename(file_path)
 
-                # Run prediction
-                result_json = run_prediction(stage_name, file_name, model_name, model_version, cursor)
+                    # Run prediction
+                    result_json = run_prediction(stage_name, file_name, model_name, model_version, cursor)
 
-                # Insert prediction data into the table
-                insert_prediction_data(result_json, file_name, table_name, cursor)
+                    # Insert prediction data into the table
+                    insert_prediction_data(result_json, file_name, table_name, cursor)
+
+                except Exception as e:
+                    print(f"An error occurred while processing {file_path}: {e}")
 
         seen_files = current_files
 
