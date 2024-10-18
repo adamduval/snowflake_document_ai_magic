@@ -104,22 +104,29 @@ def insert_prediction_data(result_json: Dict[str, Any], file_name: str, table_na
         table_name (str): The target Snowflake table for inserting data.
         cursor: The Snowflake cursor to execute the query.
     """
-    score = result_json["__documentMetadata"]["ocrScore"]
-    date_value = result_json["date"][0]["value"]
-    text_value = result_json["text"][0]["value"]
-    dropdown_value = result_json["dropdown"][0]["value"]
-    numeric_value = result_json["numeric"][0]["value"]
-    free_text_writing_value = result_json["free_text_writing"][0]["value"]
+    try:
+        score = result_json["__documentMetadata"]["ocrScore"]
+        date_value = result_json["date"][0]["value"]
+        text_value = result_json["text"][0]["value"]
+        dropdown_value = result_json["dropdown"][0]["value"]
+        numeric_value = result_json["numeric"][0]["value"]
+        free_text_writing_value = result_json["free_text_writing"][0]["value"]
 
-    print(f"Inserting data for {file_name} into table {table_name}")
-    insert_query = f"""
-        INSERT INTO {table_name} (score, date_value, text_value, dropdown_value, numeric_value, free_text_writing_value)
-        VALUES (%s, %s, %s, %s, %s, %s)
-    """
-    cursor.execute(insert_query, (
-        score, date_value, text_value, dropdown_value, numeric_value, free_text_writing_value
-    ))
-    print(f"Data for {file_name} inserted successfully")
+        print(f"Inserting data for {file_name} into table {table_name}")
+        insert_query = f"""
+            INSERT INTO {table_name} (score, date_value, text_value, dropdown_value, numeric_value, free_text_writing_value)
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """
+        cursor.execute(insert_query, (
+            score, date_value, text_value, dropdown_value, numeric_value, free_text_writing_value
+        ))
+        print(f"Data for {file_name} inserted successfully")
+
+    except KeyError as e:
+        print(f"KeyError: Missing key {e} in the result JSON for {file_name}")
+    except Exception as e:
+        print(f"An error occurred while inserting data for {file_name}: {e}")
+
 
 
 def watch_directory_and_upload(directory: str, file_type: str, stage_name: str, table_name: str, model_name: str, model_version: int, cursor, interval: int = 1) -> None:
