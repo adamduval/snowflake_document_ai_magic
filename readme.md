@@ -2,6 +2,8 @@
 
 This is a quick and fun proof of concept demo developed to show off the capabilities of Snowflake Document AI. The idea of the "magic" is to have an audience member fill out the paper form and then you as the "magician" will snap a picture of the form and it will magically appear on the streamlit app on the screen without you having to touch your computer. Top hat and cape are optional by highly recommended for effect.
 
+[[![Demo GIF](assets/full-gif.gif)]]
+
 ## Requirements
 - Snowflake
     - account
@@ -21,8 +23,6 @@ Create a stage where form images can be sent and a table to store the processed 
 ```SQL
 CREATE stage doc_ai_magic_stage
 ```
-
-Replace `MY_DB` and `MY_SCHEMA`
 
 ```SQL
 CREATE OR REPLACE TABLE MY_DB.MY_SCHEMA.DOCFORM_TABLE (
@@ -45,7 +45,7 @@ Deploy a Document AI model from Snowsight UI.
 
 #### 2.2 Make Training Data
 
-Print off 20 copies of the ./resources/demo_form_empty.pdf file and have various people fill it out. All fields can be filled out by hand (the dropdown field can be preselected; it is used to show the option of having a preselected field in a form). Ideally the forms should use printing for all fields except the handwriting field which should use cursive. 
+Print off 20 copies of the `./resources/demo_form_empty.pdf file` and have various people fill it out. All fields can be filled out by hand (the dropdown field can be preselected; it is used to show the option of having a preselected field in a form). Ideally the forms should use printing for all fields except the handwriting field which should use cursive. 
 
 #### 2.3 Train Document AI Model
 
