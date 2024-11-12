@@ -24,7 +24,9 @@ This is a quick and fun proof of concept demo developed to show off the capabili
 Create a stage where form images can be sent and a table to store the processed data.
 
 ```SQL
-CREATE stage doc_ai_magic_stage
+CREATE STAGE doc_ai_stage
+  DIRECTORY = (ENABLE = TRUE)
+  ENCRYPTION = (TYPE = 'SNOWFLAKE_SSE');
 ```
 
 ```SQL
