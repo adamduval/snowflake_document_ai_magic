@@ -1,5 +1,9 @@
 # ✨ Snowflake Document AI Magic Demo ✨
 
+> [!WARNING]
+> **This project is deprecated and is no longer maintained.** 
+> It is kept online solely for historical reference. Expect unpatched vulnerabilities in dependencies.
+
 This is a quick and fun proof of concept demo developed to show off the capabilities of Snowflake Document AI. The idea of the "magic" is to have an audience member fill out the paper form and then you as the "magician" will snap a picture of the form and it will magically appear on the streamlit app on the screen without you having to touch your computer. Top hat and cape are optional by highly recommended for effect.
 
 
